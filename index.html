@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Pixel Music Hub</title>
+  <script type="module">
+
+    // ================= FIREBASE SETUP =================
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+    import { getFirestore, collection, addDoc, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyA0Tv7E-6tmvvXR5_8YutEDogi1TngjE4k",
+      authDomain: "fspo-ffacf.firebaseapp.com",
+      databaseURL: "https://fspo-ffacf-default-rtdb.firebaseio.com",
+      projectId: "fspo-ffacf",
+      storageBucket: "fspo-ffacf.firebasestorage.app",
+      messagingSenderId: "319463993206",
+      appId: "1:319463993206:web:50983d2c717beadc86d457",
+      measurementId: "G-SVYH07LHE5"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    let currentUser = null;
+
+    // ================= AUTH =================
+    async function signup() {
+      const email = document.getElementById("email").value;
+      const pass = document.getElementById("password").value;
+      await createUserWithEmailAndPassword(auth, email, pass);
+      alert("Account created, you can login now!");
+    }
+
+    async function login() {
+      const email = document.getElementById("email").value;
+      const pass = document.getElementById("password").value;
+      const userCred = await signInWithEmailAndPassword(auth, email, pass);
+      currentUser = userCred.user;
+      document.getElementById("authBox").style.display = "none";
+      document.getElementById("mainApp").style.display = "block";
+      loadSongs();
+    }
+
+    async function logout() {
+      await signOut(auth);
+      currentUser = null;
+      document.getElementById("authBox").style.display = "block";
+      document.getElementById("mainApp").style.display = "none";
+    }
+
+    // ================= SONGS =================
+    async function addSong() {
+      const embed = document.getElementById("embed").value;
+      const category = document.getElementById("category").value;
+
+      if (!embed.includes("iframe")) {
+        alert("Please paste a valid Spotify embed code!");
+        return;
+      }
+
+      await addDoc(collection(db, "songs"), {
+        embedCode: embed,
+        category: category,
+        postedBy: currentUser.email,
+        timestamp: Date.now()
+      });
+
+      document.getElementById("embed").value = "";
+      loadSongs();
+      closeModal();
+    }
+
+    async function loadSongs() {
+      const container = document.getElementById("songs");
+      container.innerHTML = "";
+      const q = query(collection(db, "songs"), orderBy("timestamp", "desc"));
+      const snapshot = await getDocs(q);
+      snapshot.forEach(doc => {
+        const song = doc.data();
+        container.innerHTML += `
+          <div class="song">
+            <p><b>${song.postedBy}</b> in <b>${song.category}</b></p>
+            ${song.embedCode}
+          </div>
+        `;
+      });
+    }
+
+    // ================= MODAL =================
+    window.openModal = function() { document.getElementById("songModal").style.display = "flex"; }
+    window.closeModal = function() { document.getElementById("songModal").style.display = "none"; }
+    window.signup = signup;
+    window.login = login;
+    window.logout = logout;
+    window.addSong = addSong;
+
+  </script>
+
+  <style>
+    body {
+      font-family: 'Press Start 2P', cursive, monospace;
+      background: #111;
+      color: #fff;
+      margin: 0;
+      padding: 0;
+      text-align: center;
+    }
+    @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+    .pixel-btn {
+      background: #1db954;
+      border: 4px solid #0f0;
+      padding: 10px;
+      cursor: pointer;
+      font-family: inherit;
+      margin: 5px;
+      color: #000;
+    }
+    .navbar {
+      background: #222;
+      padding: 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .song {
+      background: #222;
+      padding: 15px;
+      margin: 10px;
+      border: 3px solid #0f0;
+      border-radius: 5px;
+    }
+    iframe {
+      border-radius: 8px;
+      width: 100%;
+      max-width: 400px;
+    }
+    .modal {
+      display:none;
+      position:fixed;
+      top:0; left:0; right:0; bottom:0;
+      background:rgba(0,0,0,.8);
+      justify-content:center;
+      align-items:center;
+    }
+    .modal-content {
+      background:#333;
+      padding:20px;
+      border:3px solid #0f0;
+      font-size:12px;
+    }
+    input, select {
+      font-family: inherit;
+      padding: 5px;
+      margin: 5px;
+      width: 90%;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- AUTH -->
+  <div id="authBox">
+    <h1>🎶 Pixel Music Hub</h1>
+    <p>Email:</p>
+    <input type="email" id="email"><br>
+    <p>Password:</p>
+    <input type="password" id="password"><br>
+    <button class="pixel-btn" onclick="signup()">Sign Up</button>
+    <button class="pixel-btn" onclick="login()">Login</button>
+  </div>
+
+  <!-- MAIN APP -->
+  <div id="mainApp" style="display:none;">
+    <div class="navbar">
+      <h2>Pixel Music Hub</h2>
+      <div>
+        <button class="pixel-btn" onclick="openModal()">+ Add Song</button>
+        <button class="pixel-btn" style="background:red" onclick="logout()">Logout</button>
+      </div>
+    </div>
+
+    <div id="songs"></div>
+  </div>
+
+  <!-- MODAL -->
+  <div class="modal" id="songModal">
+    <div class="modal-content">
+      <h3>Add a Song</h3>
+      <input id="embed" type="text" placeholder="Paste Spotify embed code"><br>
+      <select id="category">
+        <option value="Rap">Rap</option>
+        <option value="Pop">Pop</option>
+        <option value="Anime">Anime</option>
+      </select><br>
+      <button class="pixel-btn" onclick="addSong()">Publish</button>
+      <button class="pixel-btn" style="background:red" onclick="closeModal()">Close</button>
+    </div>
+  </div>
+
+</body>
+</html>
