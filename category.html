@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Category</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+body { font-family:'Press Start 2P', monospace; background:#111; color:#fff; text-align:center; }
+.song { background:#222; margin:10px; padding:10px; border:3px solid #0f0; }
+iframe { width:300px; height:80px; }
+button { background:#0f0; border:3px solid #fff; padding:10px; cursor:pointer; font-family:inherit; }
+input, select { margin:5px; padding:8px; width:250px; }
+</style>
+</head>
+<body>
+<h1>Category</h1>
+<div id="songs"></div>
+<hr>
+<h3>Add Song</h3>
+<input id="embed" placeholder="Spotify embed code"><br>
+<button onclick="addSong()">Publish</button>
+
+
+<script type="module">
+import { db, auth } from "./firebase.js";
+import { collection, addDoc, query, where, getDocs, orderBy } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+
+
+const urlParams=new URLSearchParams(window.location.search);
+const category=urlParams.get("cat");
+document.querySelector("h1").innerText=category+" Songs";
+
+
+async function loadSongs(){
+const q=query(collection(db,"songs"), where("category","==",category), orderBy("timestamp","desc"));
+const snapshot=await getDocs(q);
+const container=document.getElementById("songs");
+container.innerHTML="";
+snapshot.forEach(doc=>{
+const s=doc.data();
+container.innerHTML+=`<div class='song'><p><b>${s.postedBy}</b></p>${s.embedCode}</div>`;
+});
+}
+
+
+async function addSong(){
+const embed=document.getElementById("embed").value;
+const user=auth.currentUser;
+if(!user){ alert("Login required"); return; }
+await addDoc(collection(db,"songs"),{embedCode:embed,category:category,postedBy:user.email,timestamp:Date.now()});
+loadSongs();
+}
+
+
+onAuthStateChanged(auth,(user)=>{ if(user) loadSongs(); else window.location.href="login.html"; });
+window.addSong=addSong;
+</script>
+</body>
+</html>
