@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Sign Up</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+body { font-family:'Press Start 2P', monospace; background:#111; color:#0f0; text-align:center; }
+input { margin:8px; padding:8px; width:250px; }
+button { background:#0f0; border:3px solid #fff; padding:10px; cursor:pointer; font-family:inherit; }
+</style>
+</head>
+<body>
+<h1>🎶 Pixel Music Hub</h1>
+<h2>Sign Up</h2>
+<input id="name" placeholder="Name"><br>
+<input id="email" type="email" placeholder="Email"><br>
+<input id="password" type="password" placeholder="Password"><br>
+<button onclick="signup()">Create Account</button>
+<p><a href="login.html">Already have an account? Login</a></p>
+
+
+<script type="module">
+import { auth, db } from "./firebase.js";
+import { createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+import { setDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+
+
+async function signup(){
+const name=document.getElementById("name").value;
+const email=document.getElementById("email").value;
+const pass=document.getElementById("password").value;
+const userCred=await createUserWithEmailAndPassword(auth,email,pass);
+await setDoc(doc(db,"users",userCred.user.uid),{name,email});
+alert("Account created!");
+window.location.href="login.html";
+}
+window.signup=signup;
+</script>
+</body>
+</html>
